@@ -152,16 +152,8 @@ let tasksCompleted = JSON.parse(localStorage.getItem(tasksKey)) || {};
 const taskQueue = ["task-21541", "task-21543", "task-21544", "task-22205"];
 let taskIndex = 0;
 
-/* REFERRAL TRACKING FROM TELEBOTHOST */
-async function getReferralCount(referrerId){
-  if(!referrerId) return 0;
-  let response = await fetch(`https://api.telebothost.com/bot/properties/get?key=refCount_${referrerId}`);
-  if(response.ok){
-    let data = await response.json();
-    return parseInt(data.value) || 0;
-  }
-  return 0;
-}
+/* BACKEND URL */
+const API_URL = "https://watch-earn-backend.onrender.com"; // replace with your backend URL
 
 /* GET REFERRER FROM START PARAM */
 const urlParams = new URLSearchParams(window.location.search);
@@ -170,9 +162,14 @@ const referrerId = urlParams.get('start');
 /* UPDATE UI */
 async function updateUI() {
   document.getElementById("balance").textContent = balance.toFixed(2);
-  // Fetch referral count from TeleBotHost
-  let totalRefs = await getReferralCount(referrerId);
-  document.getElementById("referrals").textContent = totalRefs;
+
+  if (referrerId) {
+    // Get your referral count from backend
+    const res = await fetch(`${API_URL}/user/${referrerId}`);
+    const data = await res.json();
+    const totalRefs = data?.referrals || 0;
+    document.getElementById("referrals").textContent = totalRefs;
+  }
 }
 updateUI();
 
@@ -190,6 +187,13 @@ function addReward(amount) {
   balance += amount;
   localStorage.setItem(balanceKey, balance.toFixed(2));
   updateUI();
+
+  // Update backend balance
+  fetch(`${API_URL}/balance`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({userId: tg.initDataUnsafe.user.id, amount})
+  });
 }
 
 /* SHOW POPUP OR MAIN */
@@ -231,31 +235,29 @@ function loadTask(id){
   newTask.id="currentTask";
   document.getElementById("currentTask").replaceWith(newTask);
 
-  newTask.addEventListener("reward",()=>{
+  newTask.addEventListener("reward", async ()=>{
     addReward(0.02);
-
     tasksCompleted[id]=true;
     localStorage.setItem(tasksKey, JSON.stringify(tasksCompleted));
+
+    // Reward referrer in backend
+    if(referrerId){
+      await fetch(`${API_URL}/referral/${referrerId}`, { method: "POST" });
+      updateUI();
+      alert("💰 Referrer earned $0.01!");
+    }
 
     if(taskIndex < taskQueue.length-1){
       taskIndex++;
     } else {
-      taskIndex=0; // rotate again
+      taskIndex=0; 
       const msg = document.getElementById("taskMessage");
       msg.style.display="block";
       setTimeout(()=>{msg.style.display="none";},30000);
-      if(referrerId) rewardReferrer(referrerId);
     }
+
     loadTask(taskQueue[taskIndex]);
   });
-}
-
-/* REWARD REFERRER */
-async function rewardReferrer(refId){
-  // Only reward once per completed referral
-  await fetch(`https://api.telebothost.com/bot/properties/set?key=refCount_${refId}&increment=1`);
-  alert("💰 Referrer earned $0.01!");
-  renderLeaderboard();
 }
 
 /* WITHDRAW */
@@ -274,7 +276,7 @@ document.getElementById("withdrawBtn").addEventListener("click",()=>{
 });
 
 /* LEADERSHIP BUTTON */
-document.getElementById("leadershipBtn").addEventListener("click",()=>{
+document.getElementById("leadershipBtn").addEventListener("click", async ()=>{
   document.getElementById("leadershipSection").style.display="block";
   renderLeaderboard();
 });
@@ -283,51 +285,15 @@ document.getElementById("leadershipBtn").addEventListener("click",()=>{
 async function renderLeaderboard(){
   const list=document.getElementById("leaderboardList");
   list.innerHTML='';
-  const rewardsDate=new Date("2026-03-14T00:00:00");
-  const now=new Date();
-  const leaderboard=[];
 
-  // Fetch all users and their referral counts from TeleBotHost
-  // For demo, only show current referrer
-  if(referrerId){
-    const count = await getReferralCount(referrerId);
-    leaderboard.push({ref:referrerId, count:count});
-  }
+  const res = await fetch(`${API_URL}/leaderboard`);
+  const leaderboard = await res.json();
 
-  leaderboard.sort((a,b)=>b.count-a.count);
   leaderboard.forEach((entry,idx)=>{
     const li=document.createElement('li');
-    li.textContent=`#${idx+1} User: ${entry.ref} Referrals: ${entry.count}`;
+    li.textContent=`#${idx+1} User: ${entry.userId} Referrals: ${entry.referrals}`;
     list.appendChild(li);
-
-    if(now>=rewardsDate){
-      let reward=0;
-      if(idx===0) reward=60;
-      else if(idx===1) reward=15;
-      else if(idx===2) reward=10;
-      else if(idx===3) reward=5;
-      else if(idx===4) reward=3;
-      else if(idx>=5 && idx<10) reward=1;
-
-      let paidUsers=JSON.parse(localStorage.getItem(leadershipRewardsKey)||'[]');
-      if(reward>0 && !paidUsers.includes(entry.ref)){
-        addRewardToUser(entry.ref,reward);
-      }
-    }
   });
-}
-
-/* CREDIT LEADERSHIP REWARD */
-function addRewardToUser(userId,amount){
-  if(tg.initDataUnsafe.user.id==userId){
-    addReward(amount);
-    alert(`🏆 Leadership reward $${amount} added to your balance!`);
-  }
-  let paidUsers=JSON.parse(localStorage.getItem(leadershipRewardsKey)||'[]');
-  if(!paidUsers.includes(userId)){
-    paidUsers.push(userId);
-    localStorage.setItem(leadershipRewardsKey,JSON.stringify(paidUsers));
-  }
 }
 </script>
 </body>
