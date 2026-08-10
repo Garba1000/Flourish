@@ -1,349 +1,325 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<title>Watch & Earn</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radiocash FM</title>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  margin: 0;
-  padding: 0;
-  text-align: center;
+body{
+  margin:0;
+  font-family:system-ui;
+  background:linear-gradient(180deg,#0f172a,#020617);
   color:#fff;
-}
-
-#mainContainer {
-  display: none;
-  padding: 20px;
-  margin: 30px auto;
-  width: 90%;
-  max-width: 400px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  backdrop-filter: blur(8px);
-}
-
-.button {
-  display: block;
-  width: 100%;
-  margin: 10px 0;
-  padding: 14px;
-  background: linear-gradient(45deg,#007bff,#00c6ff);
-  color: white;
-  border-radius: 10px;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.stats{
-  background: rgba(255,255,255,0.08);
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-
-#joinPopup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.9);
-  z-index: 999999999;
-  display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-#taskMessage {
-  display:none;
-  color:#00ff00;
-  font-weight:bold;
-}
-
-#miningPopup {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.8);
-  display:none;
-  justify-content:center;
+  padding:15px;
+  display:flex;
+  flex-direction:column;
   align-items:center;
-  z-index:99999;
+}
+.card{
+  width:100%;
+  max-width:520px;
+  background:rgba(255,255,255,0.05);
+  border-radius:14px;
+  padding:15px;
+  margin-bottom:12px;
+}
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,#6366f1,#38bdf8);
+  color:#fff;
+  cursor:pointer;
+  margin-top:8px;
+}
+.play{
+  width:70px;height:70px;
+  border-radius:50%;
+  border:none;
+  background:linear-gradient(135deg,#38bdf8,#6366f1);
+  font-size:24px;
+}
+.center{text-align:center}
+.small{font-size:13px;color:#94a3b8}
+.big{font-size:22px;font-weight:600}
+
+.modal{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:#000;
+  display:none;
+  padding:20px;
+  overflow:auto;
+}
+
+/* joinPopup removed per request */
+#joinPopup{
+  display:none;
+}
+
+#joinPopup a{
+  background:linear-gradient(135deg,#6366f1,#38bdf8);
+  color:#fff;
+  padding:12px 20px;
+  border-radius:10px;
+  text-decoration:none;
+  margin-top:20px;
+  font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<div id="joinPopup">
-  <div>
-    <h2>🚫 Join channel first</h2>
-    <a href="https://t.me/Konnetearnchannel" target="_blank" onclick="joinChannelClicked()" class="button">
-       👉 Join Channel
-    </a>
-  </div>
+<!-- joinPopup removed -->
+
+<div id="mainApp" style="display:none; width:100%; flex-direction:column; align-items:center;">
+
+<div class="card center">
+  <div class="big" id="points">0</div>
+  <div class="small">Points</div>
+  <div class="small" id="earned">$0.000</div>
 </div>
 
-<div id="mainContainer">
-  <h1>⛏️ Free Mining</h1>
+<div class="card center">
+<select id="station" class="btn">
+<option value="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one">BBC Radio 1</option>
+<option value="https://stream-uk1.radioparadise.com/mp3-192">Radio Paradise</option>
+<option value="https://icecast.omroep.nl/radio2-bb-mp3">NL Radio 2</option>
+</select>
 
-  <div class="stats">
-    <p>💰 Balance: $<span id="balance">0.00</span></p>
-  </div>
+<button id="playBtn" class="play">
+<i class="fa fa-play"></i>
+</button>
 
-  <div class="stats">
-    <p>⚡ Status: <span id="miningStatus">Idle</span></p>
-    <p>⛏️ Speed: <span id="miningSpeed">0.00</span> GH/s</p>
-    <p>💎 Mined: $<span id="minedAmount">0.0000</span></p>
-  </div>
-
-  <button class="button" id="startMiningBtn" style="display:none;">🚀 Start Mining</button>
-  <button class="button" id="stopMiningBtn" style="display:none;">⛔ Stop Mining</button>
-
-  <button class="button" id="miningNowBtn">⛏️ Mining Now</button>
-
-  <button class="button" id="taskBtn">✅ Task</button>
-  <button class="button" id="withdrawBtn">💵 Withdraw</button>
-  <button class="button" id="referralBtn">🔗 Copy Referral Link</button>
-
-  <div id="taskSection" style="display:none;">
-    <adsgram-task id="currentTask" data-block-id="task-25604"></adsgram-task>
-    <div id="taskMessage">🎉 Task completed!</div>
-  </div>
+<div id="status" class="small">Idle</div>
 </div>
 
-<div id="miningPopup">
-  <button class="button" id="popupStartMining">🚀 Start Mining</button>
+<div class="card">
+<button id="watchAd" class="btn">Watch Ad (optional)</button>
+<button id="welcomeBonus" class="btn">Welcome Bonus (Optional)</button>
+
+<div id="adsArea"></div>
+<div id="welcomeArea"></div>
 </div>
+
+<div class="card">
+<button id="withdrawBtn" class="btn">Withdraw</button>
+<button id="refBtn" class="btn">Copy Referral Link</button>
+<button id="termsBtn" class="btn">Terms</button>
+<button id="infoBtn" class="btn">Info</button>
+</div>
+
+<div class="card center">
+<div class="small">Referral Bonus</div>
+<div class="big" id="refBonus">0</div>
+</div>
+
+</div>
+
+<div id="termsModal" class="modal">
+<h3>Terms</h3>
+<p>
+1. Listening to radio earns optional rewards.<br><br>
+2. Watch Ad is OPTIONAL.<br><br>
+3. Welcome bonus is optional.<br><br>
+4. Minimum withdrawal is $5.<br><br>
+5. Abuse may lead to restriction.
+</p>
+<button class="btn" onclick="closeModal()">Close</button>
+</div>
+
+<div id="infoModal" class="modal">
+<h3>Bot Info</h3>
+<p>
+Radiocash FM lets you:
+- Listen & earn<br>
+- Watch ads<br>
+- Claim bonuses<br>
+- Withdraw earnings
+</p>
+<button class="btn" onclick="closeModal()">Close</button>
+</div>
+
+<audio id="radio"></audio>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-const balanceKey='user_balance';
-const tasksKey='tasks_completed';
-const miningKey='mining_data';
-const ADMIN_ID=6910486529;
+let points=Number(localStorage.getItem("p")||0);
+let earned=Number(localStorage.getItem("e")||0);
 
-/* SAFE BALANCE */
-let balance = parseFloat(localStorage.getItem(balanceKey));
-if(isNaN(balance)) balance = 0;
+const ADSGRAM_TASKS=[
+"task-27929",
+"task-28027",
+"task-27930",
+"task-27931"
+];
 
-let tasksCompleted=JSON.parse(localStorage.getItem(tasksKey))||{};
+const WELCOME_BLOCKS=["27928","28010"];
 
-const taskQueue=["task-26154","task-26155","task-26157","task-26159"];
-const rewardBlocks = ["26146","26147","26148"];
-
-function getRandomBlock(){
-  return rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
+function update(){
+document.getElementById("points").textContent=points;
+document.getElementById("earned").textContent="$"+earned.toFixed(3);
+localStorage.setItem("p",points);
+localStorage.setItem("e",earned);
 }
 
-function updateUI(){
-  document.getElementById("balance").textContent=balance.toFixed(2);
-}
-updateUI();
-
-function addReward(amount){
-  balance += amount;
-  localStorage.setItem(balanceKey, balance);
-  updateUI();
+function closeModal(){
+termsModal.style.display="none";
+infoModal.style.display="none";
 }
 
-/* LOAD MINING DATA */
-let miningActive = false;
-let miningSpeed = 0;
-let minedAmount = 0;
+termsBtn.onclick=()=>termsModal.style.display="block";
+infoBtn.onclick=()=>infoModal.style.display="block";
 
-const savedMining = JSON.parse(localStorage.getItem(miningKey));
-if(savedMining){
-  miningActive = savedMining.active || false;
-  miningSpeed = savedMining.speed || 0;
-  minedAmount = savedMining.mined || 0;
+withdrawBtn.onclick=()=>{
+if(earned<5){
+tg.showAlert("You don't have enough fund. Minimum withdraw is $5.");
+return;
 }
+tg.showAlert("Withdraw request ready.");
+};
 
-/* RANDOM PRELOAD AD (FIXED) */
-(async () => {
-  try {
-    const ad = window.Adsgram.init({blockId: getRandomBlock()});
-    await ad.show();
-  } catch (e) {
-    console.log("Ad not available, continue...");
-  } finally {
-    document.getElementById("joinPopup").style.display = "flex";
+refBtn.onclick=()=>{
+navigator.clipboard.writeText("https://t.me/yourbot?start="+tg.initDataUnsafe.user.id);
+tg.showAlert("Referral copied.");
+};
+
+/* join functionality removed per request */
+
+/* Preload an Adsgram ad on load and then show the main app */
+window.addEventListener("load",()=>{
+  try{
+    // store preloaded ad instance for later use if needed
+    window.preloadedAd = window.Adsgram && window.Adsgram.init({blockId:"27928"});
+  }catch(err){
+    console.warn("Adsgram init failed:", err);
   }
+  // show the main app immediately
+  mainApp.style.display="flex";
+});
+
+/* Watch ad behavior (unchanged) */
+watchAd.onclick=()=>{
+const ad=document.createElement("adsgram-task");
+const randomTask=ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
+ad.setAttribute("data-block-id",randomTask);
+
+ad.addEventListener("reward",()=>{
+setTimeout(()=>{
+points+=100;
+update();
+},30000);
+});
+
+adsArea.innerHTML="";
+adsArea.appendChild(ad);
+};
+
+/* ✅ UPDATED: Welcome bonus now grants 1000 points instantly and is limited to once per 24 hours */
+welcomeBonus.onclick=()=>{
+  const now = Date.now();
+  const key = "welcomeClaimedAt";
+  const claimedAt = Number(localStorage.getItem(key) || 0);
+  const dayMs = 24*60*60*1000;
+
+  if(now - claimedAt < dayMs){
+    const remainingMs = dayMs - (now - claimedAt);
+    const hours = Math.ceil(remainingMs / (60*60*1000));
+    tg.showAlert("Welcome bonus already claimed. Try again in " + hours + " hour(s).");
+    return;
+  }
+
+  // grant instantly
+  points += 1000;
+  localStorage.setItem(key, String(now));
+  update();
+  tg.showAlert("🎉 Welcome bonus claimed! 1000 points added.");
+
+  // disable button until 24 hours pass (in this session)
+  welcomeBonus.disabled = true;
+  setTimeout(()=>{ welcomeBonus.disabled = false; }, dayMs);
+};
+
+/* keep showClaimBtn function in case you want to reuse it later */
+function showClaimBtn(){
+welcomeArea.innerHTML="";
+
+const btn=document.createElement("button");
+btn.className="btn";
+btn.innerText="Claim Welcome Bonus (1000 points)";
+
+btn.onclick=()=>{
+
+btn.remove();
+
+const task=document.createElement("adsgram-task");
+
+const randomTask=ADSGRAM_TASKS[Math.floor(Math.random()*ADSGRAM_TASKS.length)];
+
+task.setAttribute("data-block-id",randomTask);
+
+task.addEventListener("reward",()=>{
+points+=1000;
+update();
+tg.showAlert("🎉 Bonus completed! 1000 points added.");
+task.remove();
+});
+
+task.addEventListener("error",()=>{
+tg.showAlert("Complete the task to receive bonus.");
+});
+
+welcomeArea.appendChild(task);
+};
+
+welcomeArea.appendChild(btn);
+}
+
+let timer;
+playBtn.onclick=()=>{
+if(radio.paused){
+radio.src=station.value;
+radio.play();
+status.textContent="Playing";
+
+timer=setInterval(()=>{
+if(points>=100){
+points-=100;
+earned+=0.0002;
+}
+update();
+},20000);
+
+}else{
+radio.pause();
+clearInterval(timer);
+status.textContent="Paused";
+}
+};
+
+/* Disable welcome button on initial load if claimed within 24 hours */
+(function initWelcomeButtonState(){
+  try{
+    const claimedAt = Number(localStorage.getItem("welcomeClaimedAt") || 0);
+    if(Date.now() - claimedAt < 24*60*60*1000){
+      welcomeBonus.disabled = true;
+      const remaining = 24*60*60*1000 - (Date.now() - claimedAt);
+      setTimeout(()=>{ welcomeBonus.disabled = false; }, remaining);
+    }
+  }catch(e){}
 })();
 
-function joinChannelClicked(){
-  if(!localStorage.getItem('joined_channel')){
-    addReward(0.001);
-    localStorage.setItem('joined_channel',"yes");
-  }
-  document.getElementById("joinPopup").style.display="none";
-  document.getElementById("mainContainer").style.display="block";
-}
-
-/* MINING NOW */
-let firstMiningAdShown = false;
-
-document.getElementById("miningNowBtn").addEventListener("click", async () => {
-  try {
-    const ad = window.Adsgram.init({blockId: getRandomBlock()});
-    await ad.show();
-  } catch(e){}
-  document.getElementById("miningPopup").style.display = "flex";
-});
-
-/* POPUP */
-document.getElementById("popupStartMining").addEventListener("click", () => {
-  document.getElementById("miningPopup").style.display = "none";
-  document.getElementById("taskSection").style.display = "block";
-
-  const randomTask = taskQueue[Math.floor(Math.random() * taskQueue.length)];
-  loadMiningTask(randomTask);
-});
-
-/* TASK */
-function loadMiningTask(id){
-  const newTask = document.createElement("adsgram-task");
-  newTask.setAttribute("data-block-id", id);
-  newTask.id = "currentTask";
-
-  document.getElementById("currentTask").replaceWith(newTask);
-
-  newTask.addEventListener("reward", () => {
-    miningActive = true;
-    miningSpeed += 1;
-
-    startMining();
-    startSpeedDrain();
-    updateMiningUI();
-    saveMining();
-
-    document.getElementById("taskSection").style.display = "none";
-  });
-}
-
-document.getElementById("taskBtn").addEventListener("click",()=>{
-  document.getElementById("taskSection").style.display="block";
-});
-
-/* WITHDRAW */
-document.getElementById("withdrawBtn").addEventListener("click",()=>{
-  if(balance < 6) return alert("❌ Minimum withdraw is $6");
-
-  tg.sendData(JSON.stringify({
-    action:"forward_to_admin",
-    admin_id:ADMIN_ID,
-    user_id:tg.initDataUnsafe.user.id,
-    amount:balance
-  }));
-
-  alert("✅ Withdrawal sent");
-  balance=0;
-  localStorage.setItem(balanceKey, balance);
-  updateUI();
-});
-
-/* REFERRAL */
-document.getElementById("referralBtn").addEventListener("click",()=>{
-  const link=`https://t.me/Earnbutbot?start=${tg.initDataUnsafe.user.id}`;
-  navigator.clipboard.writeText(link);
-  alert("Copied!");
-});
-
-/* MINING SYSTEM */
-let miningInterval = null;
-let speedInterval = null;
-
-function updateMiningUI(){
-  document.getElementById("miningStatus").textContent = miningActive ? "Active" : "Idle";
-  document.getElementById("miningSpeed").textContent = miningSpeed.toFixed(2);
-  document.getElementById("minedAmount").textContent = minedAmount.toFixed(4);
-
-  document.getElementById("stopMiningBtn").style.display = miningActive ? "block" : "none";
-}
-
-function saveMining(){
-  localStorage.setItem(miningKey, JSON.stringify({
-    active: miningActive,
-    speed: miningSpeed,
-    mined: minedAmount
-  }));
-}
-
-document.getElementById("stopMiningBtn").addEventListener("click", () => {
-  miningActive = false;
-  clearInterval(miningInterval);
-  clearInterval(speedInterval);
-  updateMiningUI();
-  saveMining();
-});
-
-/* AUTO RESUME */
-if(miningActive && miningSpeed > 0){
-  startMining();
-  startSpeedDrain();
-}
-
-function startMining(){
-  clearInterval(miningInterval);
-
-  miningInterval = setInterval(() => {
-    if(!miningActive || miningSpeed <= 0) return;
-
-    minedAmount += 0.001;
-    updateMiningUI();
-    saveMining();
-  }, 1000);
-}
-
-function startSpeedDrain(){
-  clearInterval(speedInterval);
-
-  speedInterval = setInterval(async () => {
-    if(!miningActive) return;
-
-    if(miningSpeed > 0){
-      addReward(0.05);
-      miningSpeed -= 1;
-    }
-
-    if(miningSpeed <= 0){
-      miningSpeed = 0;
-      miningActive = false;
-
-      clearInterval(miningInterval);
-      clearInterval(speedInterval);
-
-      updateMiningUI();
-      saveMining();
-
-      try {
-        const ad = window.Adsgram.init({blockId: getRandomBlock()});
-        await ad.show();
-      } catch(e){}
-
-      document.getElementById("miningPopup").style.display = "flex";
-    }
-
-    updateMiningUI();
-    saveMining();
-
-  }, 30000);
-}
-
-updateMiningUI();
+update();
 </script>
 
 </body>
